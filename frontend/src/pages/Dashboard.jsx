@@ -12,8 +12,11 @@ const SummaryCard = ({ title, value, icon, color }) => {
         {icon}
       </div>
       <div>
-        <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">{title}</h3>
-        <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
+        <h3 className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{value}</h3>
+      </div>
+      <div className={`p-3 rounded-xl ${color.replace('bg-', 'bg-opacity-10 text-')}`}>
+        <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
       </div>
     </div>
   );
@@ -120,7 +123,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

@@ -51,6 +51,7 @@ const MaintenanceCalendar = () => {
     return { className: `${className} text-white rounded px-2` };
   };
 
+  // Customizing calendar styles via props or wrapper class
   return (
     <div className="h-[600px] bg-white p-4 rounded-lg shadow">
       <Calendar
