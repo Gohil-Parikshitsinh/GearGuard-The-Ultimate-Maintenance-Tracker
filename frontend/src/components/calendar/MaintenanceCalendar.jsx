@@ -2,65 +2,77 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { getMaintenanceEvents } from '../../services/maintenanceService';
+import './Calendar.css';
+import requestService from '../../services/requestService';
+import api from '../../services/api';
+import Modal from '../common/Modal';
+import CreateRequestForm from '../requests/CreateRequestForm';
 
 const localizer = momentLocalizer(moment);
 
 const MaintenanceCalendar = () => {
   const [events, setEvents] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  const fetchEvents = async () => {
+    try {
+      // Fetch specific calendar endpoint for preventive maintenance
+      const response = await api.get('requests/calendar/'); // Ensure url matches backend views
+      const data = response.data.data.map(item => ({
+        id: item.id,
+        title: item.title,
+        start: new Date(item.start),
+        end: new Date(item.start), // All day or same time for simplicity unless duration exists
+        allDay: true,
+        status: item.status
+      }));
+      setEvents(data);
+    } catch (error) {
+      console.error("Failed to fetch calendar events", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      // Mocking service call if it fails or returns undefined
-      try {
-        const maintenanceEvents = await getMaintenanceEvents();
-        if (maintenanceEvents) setEvents(maintenanceEvents);
-      } catch (e) {
-        console.warn("Failed to fetch events, using defaults");
-        setEvents([
-          { title: 'Excavator Maintenance', start: new Date(), end: new Date() },
-        ]);
-      }
-    };
     fetchEvents();
   }, []);
 
-  const handleSelectSlot = ({ start, end }) => {
-    const title = window.prompt('New Maintenance Request');
-    if (title) {
-      const newEvent = {
-        start,
-        end,
-        title,
-      };
-      setEvents([...events, newEvent]);
-    }
+  const handleSelectSlot = (slotInfo) => {
+    // Open modal to create request
+    setSelectedDate(moment(slotInfo.start).format('YYYY-MM-DD'));
+    setIsModalOpen(true);
+  };
+
+  const handleEventPropGetter = (event) => {
+    let className = 'bg-blue-500';
+    if (event.status === 'REPAIRED') className = 'bg-green-500';
+    if (event.status === 'SCRAP') className = 'bg-red-500';
+
+    return { className: `${className} text-white rounded px-2` };
   };
 
   // Customizing calendar styles via props or wrapper class
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-      <style>{`
-        .rbc-calendar { font-family: 'Inter', sans-serif; }
-        .rbc-toolbar button { color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; }
-        .rbc-toolbar button:hover { bg-color: #f1f5f9; }
-        .rbc-toolbar button.rbc-active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
-        .rbc-header { padding: 10px; font-weight: 600; color: #64748b; }
-        .rbc-month-view { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
-        .rbc-day-bg { border-left: 1px solid #e2e8f0; }
-        .rbc-off-range-bg { background-color: #f8fafc; }
-        /* Dark mode overrides ideally would use tailwind classes but for big-calendar css requires specific selectors */
-      `}</style>
+    <div className="h-[600px] bg-white p-4 rounded-lg shadow">
       <Calendar
         localizer={localizer}
         events={events}
         startAccessor="start"
         endAccessor="end"
-        style={{ height: 650 }}
+        style={{ height: '100%' }}
         selectable
         onSelectSlot={handleSelectSlot}
-        className="text-slate-700 dark:text-slate-300"
+        eventPropGetter={handleEventPropGetter}
+        views={['month', 'week', 'day']}
       />
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <CreateRequestForm
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={fetchEvents}
+          initialDate={selectedDate}
+        />
+      </Modal>
     </div>
   );
 };

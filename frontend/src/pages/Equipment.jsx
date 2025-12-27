@@ -1,82 +1,176 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../components/common/Header';
-import { PlusIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'; // Updated icons
-
-// Dummy data for the equipment table
-const dummyEquipment = [
-  { id: 1, name: 'Komatsu PC210 Excavator', serial: 'SN-KOM-001', category: 'Heavy Machinery', location: 'Site A', status: 'Active', maintenanceCount: 2 },
-  { id: 2, name: 'Caterpillar D6 Bulldozer', serial: 'SN-CAT-012', category: 'Heavy Machinery', location: 'Site B', status: 'Active', maintenanceCount: 0 },
-  { id: 3, name: 'Volvo A30G Hauler', serial: 'SN-VOL-089', category: 'Transport', location: 'Workshop', status: 'In Repair', maintenanceCount: 5 },
-  { id: 4, name: 'Makita Angle Grinder', serial: 'SN-MAK-734', category: 'Power Tools', location: 'Site A', status: 'Scrapped', maintenanceCount: 0 },
-  { id: 5, name: 'Hilti TE 70-ATC/AVR', serial: 'SN-HIL-551', category: 'Power Tools', location: 'Warehouse', status: 'Active', maintenanceCount: 1 },
-];
+import PropTypes from 'prop-types';
+import equipmentService from '../services/equipmentService';
+import teamService from '../services/teamService'; // Assuming we need teams for dropdown
 
 // Component for the colored status badge
-const StatusBadge = ({ status }) => {
-  const statusStyles = {
-    Active: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30",
-    Scrapped: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-400 border border-slate-200 dark:border-slate-600",
-    'In Repair': "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30",
-  };
-
+const StatusBadge = ({ is_active }) => {
+  const baseClasses = "px-3 py-1 text-xs font-bold leading-none rounded-full inline-block";
   return (
-    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${statusStyles[status] || 'bg-gray-100 text-gray-800'}`}>
-      {status}
+    <span className={`${baseClasses} ${is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+      {is_active ? 'Active' : 'Inactive'}
     </span>
   );
 };
 
+StatusBadge.propTypes = {
+  is_active: PropTypes.bool.isRequired,
+};
+
 const Equipment = () => {
+  const [equipmentList, setEquipmentList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [teams, setTeams] = useState([]);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    serial_number: '',
+    category: '',
+    department: '',
+    location: '',
+    purchase_date: '',
+    maintenance_team: ''
+  });
+
+  const userRole = localStorage.getItem('user_role');
+  const isAdmin = userRole === 'ADMIN';
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const data = await equipmentService.getAllEquipment();
+      setEquipmentList(data.data);
+
+      // If admin, fetch teams for the dropdown
+      if (isAdmin) {
+        const teamData = await teamService.getAllTeams();
+        setTeams(teamData.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch equipment", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await equipmentService.createEquipment(formData);
+      setShowModal(false);
+      fetchData(); // Refresh list
+      // Reset form
+      setFormData({
+        name: '', serial_number: '', category: '', department: '', location: '', purchase_date: '', maintenance_team: ''
+      });
+    } catch (error) {
+      alert('Failed to create equipment. Ensure Admin privileges and unique serial number.');
+      console.error(error);
+    }
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full h-full bg-gray-50 pb-8">
       <Header title="Equipment Management" />
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white">Equipment List</h2>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors font-medium shadow-lg shadow-blue-500/30">
-            <PlusIcon className="w-5 h-5" />
-            Add Equipment
-          </button>
+      <main className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-gray-700">Equipment List</h2>
+          {isAdmin && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            >
+              Add Equipment
+            </button>
+          )}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 dark:bg-slate-800/50">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Serial Number</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 relative"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {dummyEquipment.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-700 dark:text-slate-200">{item.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 font-mono">{item.serial}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
-                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400 text-xs font-medium">
-                      {item.category}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">{item.location}</td>
-                  <td className="px-6 py-4 whitespace-nowrap"><StatusBadge status={item.status} /></td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    <button className="relative p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all group">
-                      <WrenchScrewdriverIcon className="w-5 h-5" />
-                      {item.maintenanceCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900"></span>
-                      )}
-                    </button>
-                  </td>
+        {loading ? (
+          <div className="flex justify-center p-8">Loading...</div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dept</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requests</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {equipmentList.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.serial_number}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.department}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.maintenance_team_name || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => window.location.href = `/requests?equipment=${item.id}`}
+                        className="flex items-center text-blue-600 hover:text-blue-900 focus:outline-none"
+                        title="View Maintenance Requests"
+                      >
+                        <span className="mr-1 font-semibold">Maintenance</span>
+                        {item.open_request_count > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold">
+                            {item.open_request_count}
+                          </span>
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap"><StatusBadge is_active={item.is_active} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Create Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4">Add New Equipment</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <input name="name" placeholder="Name" required className="w-full p-2 border rounded" onChange={handleInputChange} />
+                <input name="serial_number" placeholder="Serial Number" required className="w-full p-2 border rounded" onChange={handleInputChange} />
+                <input name="category" placeholder="Category" required className="w-full p-2 border rounded" onChange={handleInputChange} />
+                <input name="department" placeholder="Department" required className="w-full p-2 border rounded" onChange={handleInputChange} />
+                <input name="location" placeholder="Location" required className="w-full p-2 border rounded" onChange={handleInputChange} />
+                <input name="purchase_date" type="date" required className="w-full p-2 border rounded" onChange={handleInputChange} />
+
+                <select name="maintenance_team" required className="w-full p-2 border rounded" onChange={handleInputChange}>
+                  <option value="">Select Maintenance Team</option>
+                  {teams.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+
+                <div className="flex justify-end space-x-2">
+                  <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      </main>
     </div>
   );
 };

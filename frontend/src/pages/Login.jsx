@@ -1,32 +1,29 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheckIcon, UserIcon, LockClosedIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import { login } from '../services/authService';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheckIcon } from '@heroicons/react/24/solid';
+import authService from '../services/authService';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setError('');
 
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    setIsLoading(true);
     try {
-      await login(email, password);
-      // In a real app, store token/user context here
+      await authService.login(email, password);
+      // Successful login
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid email or password. Try demo@gearguard.com / password');
-      setIsLoading(false);
+      console.error("Login failed", err);
+      setError('Invalid credentials. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,6 +44,12 @@ const Login = () => {
           </h1>
           <p className="text-slate-400 mt-2 text-sm">Sign in to access your GearGuard dashboard</p>
         </div>
+
+        {error && (
+          <div className="p-3 text-sm text-center text-red-200 bg-red-500/20 rounded-lg border border-red-500/50">
+            {error}
+          </div>
+        )}
 
         <form className="space-y-6" onSubmit={handleLogin}>
           {error && (
@@ -87,22 +90,14 @@ const Login = () => {
               />
             </div>
           </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-700 rounded bg-slate-800/50"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-slate-400">
-                Remember me
-              </label>
-            </div>
-            <a href="#" className="text-blue-400 hover:text-blue-300 font-medium">
-              Forgot password?
-            </a>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex justify-center w-full px-4 py-3 text-sm font-bold text-white uppercase bg-sky-500 border border-transparent rounded-lg shadow-lg hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 focus:ring-offset-slate-900 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Logging in...' : 'Log in'}
+            </button>
           </div>
 
           <button
