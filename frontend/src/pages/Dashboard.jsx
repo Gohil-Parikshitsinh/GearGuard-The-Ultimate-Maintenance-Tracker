@@ -1,17 +1,22 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../components/common/Header';
 import PropTypes from 'prop-types';
+import dashboardService from '../services/dashboardService';
+import { ChartBarIcon, ClipboardDocumentCheckIcon, WrenchScrewdriverIcon, ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 // A reusable card component for displaying summary stats
-const SummaryCard = ({ title, value, icon }) => {
+const SummaryCard = ({ title, value, icon, color }) => {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4 hover:shadow-lg transition-shadow duration-300">
-      <div className="p-3 rounded-full bg-gray-100">
+    <div className="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4 hover:shadow-lg transition-shadow duration-300 border-l-4" style={{ borderColor: color }}>
+      <div className="p-3 rounded-full bg-gray-50">
         {icon}
       </div>
       <div>
-        <h3 className="text-gray-500 text-sm font-medium uppercase tracking-wider">{title}</h3>
-        <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
+        <h3 className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{value}</h3>
+      </div>
+      <div className={`p-3 rounded-xl ${color.replace('bg-', 'bg-opacity-10 text-')}`}>
+        <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
       </div>
     </div>
   );
@@ -19,45 +24,106 @@ const SummaryCard = ({ title, value, icon }) => {
 
 SummaryCard.propTypes = {
   title: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   icon: PropTypes.node.isRequired,
+  color: PropTypes.string
 };
 
-
-// Icons for the summary cards
-const EquipmentIcon = () => (
-  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-);
-
-const OpenRequestsIcon = () => (
-    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-);
-
-const OverdueRequestsIcon = () => (
-    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-);
-
-
 const Dashboard = () => {
+  const [stats, setStats] = useState({
+    total_equipment: 0,
+    active_equipment: 0,
+    total_requests: 0,
+    open_requests: 0,
+    overdue_requests: 0,
+    completed_requests: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await dashboardService.getSummary();
+        setStats(response.data);
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="w-12 h-12 border-b-2 border-sky-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full pb-8">
       <Header title="Dashboard" />
-      <main className="p-6">
-        {/* Summary Cards Section */}
+      <main className="p-6 space-y-6">
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <SummaryCard title="Total Equipment" value="128" icon={<EquipmentIcon />} />
-          <SummaryCard title="Open Requests" value="16" icon={<OpenRequestsIcon />} />
-          <SummaryCard title="Overdue Requests" value="3" icon={<OverdueRequestsIcon />} />
+          <SummaryCard
+            title="Total Assets"
+            value={stats.total_equipment}
+            icon={<WrenchScrewdriverIcon className="w-8 h-8 text-blue-500" />}
+            color="#3b82f6"
+          />
+          <SummaryCard
+            title="Active Assets"
+            value={stats.active_equipment}
+            icon={<CheckCircleIcon className="w-8 h-8 text-green-500" />}
+            color="#22c55e"
+          />
+          <SummaryCard
+            title="Open Requests"
+            value={stats.open_requests}
+            icon={<ClipboardDocumentCheckIcon className="w-8 h-8 text-orange-500" />}
+            color="#f97316"
+          />
+          <SummaryCard
+            title="Overdue Jobs"
+            value={stats.overdue_requests}
+            icon={<ExclamationCircleIcon className="w-8 h-8 text-red-500" />}
+            color="#ef4444"
+          />
+          <SummaryCard
+            title="Completed Jobs"
+            value={stats.completed_requests}
+            icon={<ClipboardDocumentCheckIcon className="w-8 h-8 text-indigo-500" />}
+            color="#6366f1"
+          />
+          <SummaryCard
+            title="Total Maintenance"
+            value={stats.total_requests}
+            icon={<ChartBarIcon className="w-8 h-8 text-purple-500" />}
+            color="#a855f7"
+          />
         </div>
 
-        {/* Placeholder for future charts or tables */}
-        <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Activity Overview</h2>
-            <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-              <p className="text-gray-400">Chart will be displayed here</p>
+        {/* Analytics Section (Placeholder for now, can be updated with Recharts) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Requests Overview</h2>
+            <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center border border-dashed border-gray-300">
+              <p className="text-gray-400">Charts coming soon</p>
             </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Team Performance</h2>
+            <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center border border-dashed border-gray-300">
+              <p className="text-gray-400">Charts coming soon</p>
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
