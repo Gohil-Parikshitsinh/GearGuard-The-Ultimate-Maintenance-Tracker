@@ -1,21 +1,18 @@
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .models import MaintenanceRequest
 
-@receiver(pre_save, sender=MaintenanceRequest)
-def auto_fill_maintenance_team(sender, instance, **kwargs):
-    """
-    Auto-assign maintenance team from the selected equipment.
-    """
-    if instance.equipment and not instance.maintenance_team:
-        # Automatically set team based on equipment's team
-        instance.maintenance_team = instance.equipment.maintenance_team
-
 @receiver(post_save, sender=MaintenanceRequest)
-def handle_scrap_status(sender, instance, **kwargs):
+def maintenance_request_post_save(sender, instance, created, **kwargs):
     """
-    If status moves to SCRAP, deactivate the equipment.
+    Business Logic Triggers:
+    1. Scrap Logic: If status is 'SCRAP', mark equipment as scrapped.
     """
-    if instance.status == 'SCRAP' and instance.equipment.is_active:
-        instance.equipment.is_active = False
-        instance.equipment.save()
+    if instance.status == 'SCRAP':
+        equipment = instance.equipment
+        # preventing unnecessary saves
+        if not equipment.is_scrapped: 
+            equipment.is_scrapped = True
+            equipment.is_active = False # Assuming scrapped means inactive too
+            equipment.save()
+            print(f"Equipment {equipment.serial_number} marked as SCRAPPED.")

@@ -32,6 +32,15 @@ class RequestListCreateAPI(APIView):
             # Employee sees requests they created
             requests = MaintenanceRequest.objects.filter(created_by=user)
 
+        # --- Filtering (Smart Button / Kanban) ---
+        equipment_id = request.query_params.get('equipment')
+        if equipment_id:
+            requests = requests.filter(equipment_id=equipment_id)
+        
+        req_type = request.query_params.get('request_type')
+        if req_type:
+            requests = requests.filter(request_type=req_type)
+
         serializer = MaintenanceRequestDetailSerializer(requests, many=True)
         return Response({
             "message": "Maintenance requests fetched successfully",

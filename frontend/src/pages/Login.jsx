@@ -1,16 +1,30 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheckIcon } from '@heroicons/react/24/solid';
+import authService from '../services/authService';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // No backend authentication yet, just navigate to dashboard
-    navigate('/dashboard');
+    setLoading(true);
+    setError('');
+
+    try {
+      await authService.login(email, password);
+      // Successful login
+      navigate('/dashboard');
+    } catch (err) {
+      console.error("Login failed", err);
+      setError('Invalid credentials. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -23,6 +37,13 @@ const Login = () => {
           </h1>
           <p className="text-sm text-slate-300">Admin Dashboard</p>
         </div>
+
+        {error && (
+          <div className="p-3 text-sm text-center text-red-200 bg-red-500/20 rounded-lg border border-red-500/50">
+            {error}
+          </div>
+        )}
+
         <form className="space-y-6" onSubmit={handleLogin}>
           <div>
             <label
@@ -65,9 +86,10 @@ const Login = () => {
           <div>
             <button
               type="submit"
-              className="flex justify-center w-full px-4 py-3 text-sm font-bold text-white uppercase bg-sky-500 border border-transparent rounded-lg shadow-lg hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 focus:ring-offset-slate-900 transition-transform transform hover:scale-105"
+              disabled={loading}
+              className="flex justify-center w-full px-4 py-3 text-sm font-bold text-white uppercase bg-sky-500 border border-transparent rounded-lg shadow-lg hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 focus:ring-offset-slate-900 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Log in
+              {loading ? 'Logging in...' : 'Log in'}
             </button>
           </div>
         </form>
