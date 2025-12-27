@@ -15,8 +15,26 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.http import JsonResponse
+
+def root_view(request):
+    return JsonResponse({
+        "message": "GearGuard API is running successfully",
+        "available_endpoints": [
+            "/admin/",
+            "/api/accounts/register/",
+            "/api/accounts/login/",
+            "/api/accounts/profile/",
+        ]
+    })
 
 urlpatterns = [
+    path('', root_view, name='root'),
     path('admin/', admin.site.urls),
+    path('api/accounts/', include('apps.accounts.urls')),
+    path('api/teams/', include('apps.teams.urls')),
+    path('api/equipment/', include('apps.equipment.urls')),
+    path('api/requests/', include('apps.maintenance.urls')),
+    path('api/dashboard/', include('apps.dashboard.urls')),
 ]
