@@ -1,0 +1,42 @@
+.maintenance-calendar {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.rbc-calendar {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rbc-toolbar {
+  background-color: #f7f7f7;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 8px 8px 0 0;
+}
+
+.rbc-toolbar button {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #e6e6e6;
+}
+
+.rbc-event {
+  background-color: #3174ad;
+  color: #fff;
+  border-radius: 4px;
+  padding: 5px;
+  border: none;
+}
+
+.rbc-day-bg.rbc-today {
+  background-color: #f0f8ff;
+}
